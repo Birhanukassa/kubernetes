@@ -1,0 +1,38 @@
+name: Sync with upstream
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # every day at 03:00 UTC
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Git
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "actions@github.com"
+
+      - name: Add upstream
+        run: git remote add upstream https://github.com/kubernetes/kubernetes.git
+
+      - name: Fetch upstream
+        run: git fetch upstream
+
+      - name: Update main
+        run: |
+          git checkout main
+          git merge upstream/master
+          git push origin main
+
+      - name: Update test-experiments
+        run: |
+          git checkout test-experiments
+          git merge upstream/master
+          git push origin test-experiments
