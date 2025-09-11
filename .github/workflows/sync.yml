@@ -26,6 +26,18 @@ jobs:
       - name: Fetch upstream
         run: git fetch upstream
 
+      # Check if experiments are paused
+      - name: Check pause status
+        id: check_pause
+        run: |
+          if [ -f ".pause-experiments" ]; then
+            echo "paused=true" >> $GITHUB_OUTPUT
+            echo "⏸️ Experiments are paused"
+          else
+            echo "paused=false" >> $GITHUB_OUTPUT
+            echo "▶️ Experiments will sync normally"
+          fi
+
       - name: Update main (rebase with auto-conflict resolution)
         run: |
           git checkout main
@@ -40,6 +52,7 @@ jobs:
           git push --force-with-lease origin main
 
       - name: Update test-experiments (rebase with auto-conflict resolution)
+        if: steps.check_pause.outputs.paused == 'false'
         run: |
           git checkout test-experiments
           set +e
@@ -51,6 +64,10 @@ jobs:
           )
           set -e
           git push --force-with-lease origin test-experiments
+
+      - name: Skip test-experiments sync
+        if: steps.check_pause.outputs.paused == 'true'
+        run: echo "⏸️ Experiments paused - skipping test-experiments sync"
 
   notify:
     needs: sync
